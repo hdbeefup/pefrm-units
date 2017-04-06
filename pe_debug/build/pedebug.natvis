@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="SymbolCollection">
+    <Expand>
+      <CustomListItems>
+        <Variable Name="iter" InitialValue="this->parsePoints.root.next"/>
+        <Variable Name="item" InitialValue="(symbolParsePoint_t*)0"/>
+        <Loop Condition="iter != &amp;this->parsePoints.root">
+          <Exec>item = (symbolParsePoint_t*)( (char*)iter - (char*)&amp;((symbolParsePoint_t*)0)-&gt;parseNode )</Exec>
+          <Item>item</Item>
+          <Exec>iter = iter-&gt;next</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>

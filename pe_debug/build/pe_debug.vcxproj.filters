@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\shared\debugsdk\dbgtrace.cpp">
+      <Filter>debugsdk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\debugsdk\dbgheap.cpp">
+      <Filter>debugsdk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\mangle.cpp" />
+    <ClCompile Include="..\src\pdbgen.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\StdInc.h" />
+    <ClInclude Include="..\src\config\debugsdk_config.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\debugsdk\dbgtrace.h">
+      <Filter>debugsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\debugsdk\dbgtrace.vendor.hwbrk.hxx">
+      <Filter>debugsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\debugsdk\dbgheap.h">
+      <Filter>debugsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\msft_pdb\include\cvconst.h">
+      <Filter>msft_pdb\codeview</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\msft_pdb\include\cvinfo.h">
+      <Filter>msft_pdb\codeview</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\msft_pdb\langapi\include\pdb.h">
+      <Filter>msft_pdb\langapi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\msft_pdb\langapi\shared\crc32.h">
+      <Filter>msft_pdb\langapi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\pdb_essential\vcver.h">
+      <Filter>pdb_essential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\mangle.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="config">
+      <UniqueIdentifier>{d113acdf-2d98-49ba-8fa2-20fbcc1f87ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="debugsdk">
+      <UniqueIdentifier>{b295a017-a08c-4493-9ccd-21ea52f67cc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="msft_pdb">
+      <UniqueIdentifier>{b8338be0-4713-4ada-864b-d122b9138698}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="msft_pdb\codeview">
+      <UniqueIdentifier>{a5472aeb-580c-44bc-9ec2-d181f951f497}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="msft_pdb\langapi">
+      <UniqueIdentifier>{b29ff9e1-2f5a-457f-97a2-1eba1c18d5a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="pdb_essential">
+      <UniqueIdentifier>{a5251f84-9ecb-4569-9d03-3eb005fc6498}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="pedebug.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="customprops.xml" />
+  </ItemGroup>
+</Project>

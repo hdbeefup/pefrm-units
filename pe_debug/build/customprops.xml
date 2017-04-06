@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions  xmlns="http://schemas.microsoft.com/build/2009/properties"
+                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                           xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <Rule Name="pedebug_config" PageTemplate="generic">
+    <Rule.DisplayName>
+      <sys:String>pedebug Configuration</sys:String>
+    </Rule.DisplayName>
+    <Rule.Categories>
+      <Category Name="pedebug_general">
+        <Category.DisplayName>
+          <sys:String>General</sys:String>
+        </Category.DisplayName>
+      </Category>
+    </Rule.Categories>
+    <Rule.DataSource>
+      <DataSource Persistence="UserFile" ItemType="" />
+    </Rule.DataSource>
+    <BoolProperty Name="PEDEBUG_ENABLE_FAKE_SYMBOL_INFORMATION" Category="pedebug_general" IsRequired="true">
+      <BoolProperty.DisplayName>
+        <sys:String>Enable fake symbol information</sys:String>
+      </BoolProperty.DisplayName>
+      <BoolProperty.Description>
+        <sys:String>Changes function and data symbol information that is unknown into a more compatible format so that more tools can understand them. This will make them look wrong in official Microsoft tools.</sys:String>
+      </BoolProperty.Description>
+    </BoolProperty>
+  </Rule>
+</ProjectSchemaDefinitions>
