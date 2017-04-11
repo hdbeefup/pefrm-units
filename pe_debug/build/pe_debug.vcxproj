@@ -102,7 +102,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\shared\eirrepo\;..\shared\FileSystem\src\;..\src\config\;..\shared\peframework\include\;..\src\pdb_essential\;..\shared\gtaconfig\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\shared\eirrepo\;..\shared\FileSystem\include\;..\src\config\;..\shared\peframework\include\;..\src\pdb_essential\;..\shared\gtaconfig\include\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <MinimalRebuild>false</MinimalRebuild>
@@ -130,7 +130,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\shared\eirrepo\;..\shared\FileSystem\src\;..\src\config\;..\shared\peframework\include\;..\src\pdb_essential\;..\shared\gtaconfig\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\shared\eirrepo\;..\shared\FileSystem\include\;..\src\config\;..\shared\peframework\include\;..\src\pdb_essential\;..\shared\gtaconfig\include\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <MinimalRebuild>false</MinimalRebuild>
@@ -160,7 +160,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\shared\eirrepo\;..\shared\FileSystem\src\;..\src\config\;..\shared\peframework\include\;..\src\pdb_essential\;..\shared\gtaconfig\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\shared\eirrepo\;..\shared\FileSystem\include\;..\src\config\;..\shared\peframework\include\;..\src\pdb_essential\;..\shared\gtaconfig\include\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -189,7 +189,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\shared\eirrepo\;..\shared\FileSystem\src\;..\src\config\;..\shared\peframework\include\;..\src\pdb_essential\;..\shared\gtaconfig\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\shared\eirrepo\;..\shared\FileSystem\include\;..\src\config\;..\shared\peframework\include\;..\src\pdb_essential\;..\shared\gtaconfig\include\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
