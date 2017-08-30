@@ -12,7 +12,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pe_debug", "pe_debug.vcxpro
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{2115EC3D-4573-49B2-B294-52F4A43043B1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "..\shared\zlib\vs2015\zlib.vcxproj", "{65D5E721-48DD-4DA9-9903-6E2FDD90725A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "..\shared\zlib\build\zlib.vcxproj", "{65D5E721-48DD-4DA9-9903-6E2FDD90725A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileSystem", "..\shared\FileSystem\build\FileSystem.vcxproj", "{6E793DA8-5641-4BBB-BCB0-43BF10682E14}"
 	ProjectSection(ProjectDependencies) = postProject
