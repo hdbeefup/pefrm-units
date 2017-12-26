@@ -107,19 +107,21 @@ int main( int argc, char *argv[] )
                 void *relocMem = ( (char*)imageMemory + rvaOfBlock * PEFile::baserelocChunkSize + relocItem.offset );
 
                 // Depending on type, if we know it.
-                if ( relocItem.type == PEFile::PEBaseReloc::eRelocType::DIR64 )
+                PEFile::PEBaseReloc::eRelocType enumRelocType = (PEFile::PEBaseReloc::eRelocType)relocItem.type;
+
+                if ( enumRelocType == PEFile::PEBaseReloc::eRelocType::DIR64 )
                 {
                     std::uint64_t *memData = (std::uint64_t*)relocMem;
 
                     *memData = ( *memData - pe_imageBase ) + newImageBase;
                 }
-                else if ( relocItem.type == PEFile::PEBaseReloc::eRelocType::HIGHLOW )
+                else if ( enumRelocType == PEFile::PEBaseReloc::eRelocType::HIGHLOW )
                 {
                     std::uint32_t *memData = (std::uint32_t*)relocMem;
 
                     *memData = (std::uint32_t)( ( *memData - pe_imageBase ) + newImageBase );
                 }
-                else if ( relocItem.type == PEFile::PEBaseReloc::eRelocType::ABSOLUTE )
+                else if ( enumRelocType == PEFile::PEBaseReloc::eRelocType::ABSOLUTE )
                 {
                     // We are required to ignore these.
                 }
@@ -216,7 +218,7 @@ int main( int argc, char *argv[] )
 
             // Write it into memory.
             {
-                void *modHandlePtr = ( (char*)imageMemory + delayLoad.DLLHandleRef.GetRVA() );
+                void *modHandlePtr = ( (char*)imageMemory + delayLoad.DLLHandleAlloc.ResolveOffset( 0 ) );
 
                 *( (HMODULE*)modHandlePtr ) = modHandle;
             }
