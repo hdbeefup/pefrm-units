@@ -35,7 +35,7 @@ static constexpr size_t exe_buffer_end = _countof( exe_loader_buffer ) + _peFixe
 int main( int argc, char *argv[] )
 {
     // Get our module base address.
-    void *ourBase = GetModuleHandleW( NULL );
+    void *ourBase = GetModuleHandleW( nullptr );
 
     // Verify that our executable buffer is placed alright.
     if ( exe_loader_buffer - _peFixedBaseOffset != ourBase )
@@ -183,7 +183,7 @@ int main( int argc, char *argv[] )
                 const PEFile::PEImportDesc::importFunc& funcInfo = *thunkInfoIter;
 
                 // Patch the function ptr.
-                void *funcAddr = NULL;
+                void *funcAddr = nullptr;
 
                 if ( funcInfo.isOrdinalImport )
                 {
@@ -194,7 +194,7 @@ int main( int argc, char *argv[] )
                     funcAddr = GetProcAddress( memoryModule, funcInfo.name.c_str() );
                 }
 
-                if ( funcAddr == NULL )
+                if ( funcAddr == nullptr )
                 {
                     std::cout << "failed to resolve module import\n";
 
@@ -218,7 +218,7 @@ int main( int argc, char *argv[] )
             // Load the actual module.
             HMODULE memoryModule = LoadLibraryA( importEntry.DLLName.c_str() );
 
-            assert( memoryModule != NULL );
+            assert( memoryModule != nullptr );
 
             // Need to write into the thunk.
             IMAGE_THUNK_DATA *modThunkIter = (IMAGE_THUNK_DATA*)( (char*)ourBase + importEntry.firstThunkRef.GetRVA() );
@@ -233,11 +233,11 @@ int main( int argc, char *argv[] )
         {
             HMODULE modHandle = LoadLibraryA( delayLoad.DLLName.c_str() );
 
-            assert( modHandle != NULL );
+            assert( modHandle != nullptr );
 
             // Write it into memory.
             {
-                void *modHandlePtr = ( (char*)ourBase + delayLoad.DLLHandleRef.GetRVA() );
+                void *modHandlePtr = ( (char*)ourBase + delayLoad.DLLHandleAlloc.ResolveOffset( 0 ) );
 
                 *( (HMODULE*)modHandlePtr ) = modHandle;
             }
