@@ -24,7 +24,7 @@
 extern CFileSystem *fileSystem;
 
 // From other compilation modules (for a reason).
-void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const filePath& outPathWithoutExt );
+void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const filePath& nameOfExecutable, const filePath& outPathWithoutExt );
 
 static void printHeader( void )
 {
@@ -46,7 +46,7 @@ int main( int _, char *__[] )
 
     const wchar_t *const *cmdArgs = CommandLineToArgvW( cmdLine, &argc );
 
-    if ( cmdArgs == NULL )
+    if ( cmdArgs == nullptr )
     {
         printf( "failed to parse command line arguments\n" );
         return -1;
@@ -76,7 +76,7 @@ int main( int _, char *__[] )
     // We want to read our own PE executable.
     // After that we want to write it out again in the exactly same format.
     fs_construction_params constrParam;
-    constrParam.nativeExecMan = NULL;
+    constrParam.nativeExecMan = nullptr;
 
     CFileSystem::Create( constrParam );
 
@@ -132,7 +132,7 @@ int main( int _, char *__[] )
             {
                 // Next up is deciding on an output file root, which can be inside by the input executable or if not possible by
                 // the running executable.
-                CFileTranslator *outputRoot = NULL;
+                CFileTranslator *outputRoot = nullptr;
                 bool isOutputRootShared = false;
                 // * EXE PATH.
                 {
@@ -170,7 +170,7 @@ int main( int _, char *__[] )
                         outFileName += "_debug";
 
                         // Do some PDB magic I guess.
-                        tryGenerateSamplePDB( filedata, outputRoot, outFileName );
+                        tryGenerateSamplePDB( filedata, outputRoot, nameItem, outFileName );
 
                         // We get the extension from the PE file format.
                         if ( filedata.IsDynamicLinkLibrary() )

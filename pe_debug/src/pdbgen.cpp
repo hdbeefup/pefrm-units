@@ -96,16 +96,38 @@ struct CV_INFO_PDB70
     //BYTE       PdbFileName[1];
 };
 
-void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const filePath& outPathWithoutExt )
+static CFile* OpenSymbolsFileAtRoot( CFileTranslator *symbRoot, const filePath& nameOfExecutable )
+{
+    // We prioritize a name with the executable in it.
+    {
+        filePath spcSymbolsExec = nameOfExecutable;
+        spcSymbolsExec += "_symbols.txt";
+
+        if ( CFile *symbolsFile = symbRoot->Open( spcSymbolsExec, "rb" ) )
+        {
+            return symbolsFile;
+        }
+    }
+
+    // Try using the default name.
+    if ( CFile *symbolsFile = symbRoot->Open( L"symbols.txt", L"rb" ) )
+    {
+        return symbolsFile;
+    }
+
+    return nullptr;
+}
+
+void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const filePath& nameOfExecutable, const filePath& outPathWithoutExt )
 {
     // Prepare symbol names from an input file.
     symbolNames_t symbols;
     {
         // We try both the output root and the file root for the symbols file.
-        CFile *symbolsFile = NULL;
+        CFile *symbolsFile = nullptr;
         // * OUTPUT ROOT.
         {
-            symbolsFile = outputRoot->Open( L"symbols.txt", L"rb" );
+            symbolsFile = OpenSymbolsFileAtRoot( outputRoot, nameOfExecutable );
 
             if ( symbolsFile )
             {
@@ -115,7 +137,7 @@ void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const fi
         // * FILE ROOT.
         if ( !symbolsFile && ( outputRoot != fileRoot ) )
         {
-            symbolsFile = fileRoot->Open( L"symbols.txt", L"rb" );
+            symbolsFile = OpenSymbolsFileAtRoot( fileRoot, nameOfExecutable );
 
             if ( symbolsFile )
             {
