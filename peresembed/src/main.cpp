@@ -387,9 +387,7 @@ int main( int argc, const char *argv[] )
 
             // Write the PE image back to disk.
             {
-                FileSystem::fileTrans outputRootDir = open_root_dir( fileRoot, outputExecFilePath, -7, "output root" );
-
-                FileSystem::filePtr outputPEStream( outputRootDir, outputExecFilePath, "wb" );
+                FileSystem::filePtr outputPEStream = open_stream_redir( outputExecFilePath, "wb", -7, "output image" );
 
                 PEStreamFS stream( outputPEStream );
 
@@ -449,9 +447,7 @@ int main( int argc, const char *argv[] )
             // First we load the input image.
             PEFile inputImage;
             {
-                FileSystem::fileTrans inputImageRoot = open_root_dir( fileRoot, pathToInputExec, -4, "input image root" );
-
-                FileSystem::filePtr inputImageStream = inputImageRoot->Open( pathToInputExec, "rb" );
+                FileSystem::filePtr inputImageStream = open_stream_redir( pathToInputExec, "rb", -4, "input image" );
 
                 PEStreamFS stream( inputImageStream );
 
@@ -492,15 +488,7 @@ int main( int argc, const char *argv[] )
             PEFile::PESection *newSect;
             {
                 // Open the file that we want to embed.
-                FileSystem::fileTrans fileToEmbedRoot = open_root_dir( fileRoot, pathFileToEmbed, -8, "embed file root" );
-
-                FileSystem::filePtr fileToEmbedStream = fileToEmbedRoot->Open( pathFileToEmbed, "rb" );
-
-                if ( !fileToEmbedStream.is_good() )
-                {
-                    printf( "failed to open the given file for embedding\n" );
-                    return -9;
-                }
+                FileSystem::filePtr fileToEmbedStream = open_stream_redir( pathFileToEmbed, "rb", -8, "embed file" );
 
                 // Thus we write the file into a section.
                 newSect = embed_file_as_section( inputImage, fileToEmbedStream );
@@ -534,15 +522,7 @@ int main( int argc, const char *argv[] )
 
             // Finish by writing image back to disk.
             {
-                FileSystem::fileTrans outputFileRoot = open_root_dir( fileRoot, pathToOutputExec, -11, "output exec root" );
-
-                FileSystem::filePtr outputFileStream = outputFileRoot->Open( pathToOutputExec, "wb" );
-
-                if ( !outputFileStream.is_good() )
-                {
-                    printf( "failed to open output exec path for writing\n" );
-                    return -12;
-                }
+                FileSystem::filePtr outputFileStream = open_stream_redir( pathToOutputExec, "wb", -11, "output image" );
 
                 PEStreamFS stream( outputFileStream );
 
@@ -563,7 +543,191 @@ int main( int argc, const char *argv[] )
         {
             printf( "embedding folder as resources\n" );
 
+            if ( args_remaining < 1 )
+            {
+                printf( "missing path to input folder for embedding\n" );
+                return -3;
+            }
 
+            filePath pathToEmbedFolder = argv[ argToStartFrom + 0 ];
+
+            if ( args_remaining < 2 )
+            {
+                printf( "missing path to input executable\n" );
+                return -3;
+            }
+
+            filePath pathToInputExec = argv[ argToStartFrom + 1 ];
+
+            if ( args_remaining < 3 )
+            {
+                printf( "missing path for output executable writing\n" );
+                return -3;
+            }
+
+            filePath pathToOutputExec = argv[ argToStartFrom + 2 ];
+
+            printf( "loading input image\n" );
+
+            // First we load the input image.
+            PEFile inputImage;
+            {
+                FileSystem::filePtr inputImageStream = open_stream_redir( pathToInputExec, "rb", -4, "input image" );
+
+                PEStreamFS stream( inputImageStream );
+
+                try
+                {
+                    inputImage.LoadFromDisk( &stream );
+                }
+                catch( peframework_exception& )
+                {
+                    printf( "failed to load input PE image\n" );
+                    return -5;
+                }
+            }
+
+            // Prepare a section for data embedding.
+            PEFile::PESection embedSect;
+            embedSect.shortName = ".rembed";
+            embedSect.chars.sect_containsCode = false;
+            embedSect.chars.sect_containsInitData = false;
+            embedSect.chars.sect_containsUninitData = false;
+            embedSect.chars.sect_mem_farData = false;
+            embedSect.chars.sect_mem_purgeable = true;
+            embedSect.chars.sect_mem_locked = false;
+            embedSect.chars.sect_mem_preload = true;
+            embedSect.chars.sect_mem_discardable = true;
+            embedSect.chars.sect_mem_not_cached = true;
+            embedSect.chars.sect_mem_not_paged = false;
+            embedSect.chars.sect_mem_shared = false;
+            embedSect.chars.sect_mem_execute = false;
+            embedSect.chars.sect_mem_read = true;
+            embedSect.chars.sect_mem_write = false;
+
+            printf( "embedding resources...\n" );
+
+            // Next we loop through all files in the embed folder and put them as resources into the image.
+            {
+                FileSystem::fileTrans embedRoot = open_root_dir( fileRoot, pathToEmbedFolder, -6, "embed root" );
+
+                embedRoot->ScanDirectory( "/", "*", true, nullptr,
+                    [&]( const filePath& absFilePath )
+                {
+                    // Print a nice message.
+                    {
+                        auto ansiAbsPath = absFilePath.convert_ansi();
+
+                        printf( "* %s ...", ansiAbsPath.GetConstString() );
+                    }
+
+                    // Turn it into a relative node path from the embed root.
+                    bool isFile;
+                    dirNames relFileNodePath;
+
+                    embedRoot->GetRelativePathTreeFromRoot( absFilePath, relFileNodePath, isFile );
+
+                    assert( isFile == true );
+
+                    FileSystem::filePtr stream = embedRoot->Open( absFilePath, "rb" );
+
+                    if ( stream.is_good() == false )
+                    {
+                        printf( "failed to open file for embedding.\n" );
+                        return;
+                    }
+
+                    // First we embed the file into the section.
+                    std::uint32_t file_off = (std::uint32_t)embedSect.stream.Tell();
+
+                    fsOffsetNumber_t _file_size = stream->GetSizeNative();
+
+                    std::uint32_t real_file_size = (std::uint32_t)_file_size;
+
+                    // Expand the section memory space.
+                    int32_t target_seek = embedSect.stream.Tell() + (int32_t)real_file_size;
+                    embedSect.stream.Truncate( target_seek );
+                    {
+                        void *dstDataPtr = (char*)embedSect.stream.Data() + file_off;
+                        stream->Read( dstDataPtr, 1, (size_t)real_file_size );
+                    }
+                    embedSect.stream.Seek( target_seek );
+
+                    // Create our data reference.
+                    PEFile::PESectionDataReference dataRef( &embedSect, file_off, real_file_size );
+
+                    // Get to the resource directory.
+                    PEFile::PEResourceDir *putDir = &inputImage.resourceRoot;
+
+                    size_t numDirItems = ( relFileNodePath.GetCount() - 1 );
+
+                    for ( size_t n = 0; n < numDirItems; n++ )
+                    {
+                        filePath nodeName = relFileNodePath[ n ];
+
+                        nodeName.transform_to <char16_t> ();
+
+                        peString <char16_t> wideNodeName( nodeName.to_char <char16_t> (), nodeName.size() );
+
+                        putDir = putDir->MakeDir( false, std::move( wideNodeName ), 0 );
+
+                        assert( putDir != nullptr );
+                    }
+
+                    // Then create our data node.
+                    filePath dataNodeName = std::move( relFileNodePath[ numDirItems ] );
+
+                    dataNodeName.transform_to <char16_t> ();
+
+                    peString <char16_t> wideNodeName( dataNodeName.to_char <char16_t> (), dataNodeName.size() );
+
+                    PEFile::PEResourceInfo *dataNode = putDir->PutData( false, std::move( wideNodeName ), 0, std::move( dataRef ) );
+
+                    if ( dataNode )
+                    {
+                        printf( "ok.\n" );
+                    }
+                    else
+                    {
+                        printf( "failed to add.\n" );
+                    }
+
+                }, nullptr );
+            }
+
+            // Then we finalize + insert our embedding section.
+            embedSect.Finalize();
+
+            printf( "adding PE section to image\n" );
+
+            PEFile::PESection *newSect = inputImage.AddSection( std::move( embedSect ) );
+
+            if ( newSect == nullptr )
+            {
+                printf( "failed to add PE section with resources to executable image\n" );
+                return -6;
+            }
+
+            printf( "writing output image...\n" );
+
+            // Write our new image.
+            {
+                FileSystem::filePtr outputImageStream = open_stream_redir( pathToOutputExec, "wb", -7, "output image" );
+
+                PEStreamFS stream( outputImageStream );
+
+                try
+                {
+                    inputImage.WriteToStream( &stream );
+                }
+                catch( peframework_exception& )
+                {
+                    printf( "failed to write output PE image\n" );
+                    return -8;
+                }
+            }
+
+            printf( "done.\n" );
         }
         else
         {
