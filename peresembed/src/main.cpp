@@ -228,8 +228,11 @@ int main( int argc, const char *argv[] )
         printf(
             "-h/-help/-?: displays this help text\n"
             "-zipfldr: compresses a target folder as .ZIP and puts it into application memory space\n"
+            "* USAGE: peresembed -zipfldr *FOLDER_PATH* *EXP_NAME* *INPUT_EXE_PATH* *OUTPUT_EXE_PATH*\n"
             "-file: puts a file into application memory space\n"
+            "* USAGE: peresembed -file *FILE_PATH* *EXP_NAME* *INPUT_EXE_PATH* *OUTPUT_EXE_PATH*\n"
             "-resfldr: puts all files from a folder into the application resource tree\n"
+            "* USAGE: peresembed -resfldr *FOLDER_PATH* *INPUT_EXE_PATH* *OUTPUT_EXE_PATH*\n"
             "-keepexp: if operation resolves an export then keep the export after resolution\n"
         );
 
@@ -294,6 +297,8 @@ int main( int argc, const char *argv[] )
 
                 printf( "compressing archive...\n" );
 
+                size_t file_count = 0;
+
                 accessRoot->ScanDirectory( "/", "*", true, nullptr,
                     [&]( const filePath& absFilePath )
                 {
@@ -301,6 +306,9 @@ int main( int argc, const char *argv[] )
                     accessRoot->GetRelativePathFromRoot( absFilePath, true, relFilePath );
 
                     FileSystem::FileCopy( accessRoot, absFilePath, zipFolder, relFilePath );
+                    
+                    // Statistics.
+                    file_count++;
 
                     // Output a nice message.
                     {
@@ -309,6 +317,9 @@ int main( int argc, const char *argv[] )
                         printf( "* %s\n", ansiFilePath.GetConstString() );
                     }
                 }, nullptr );
+
+                // Output nice stats.
+                printf( "added %zu files to archive\n", file_count );
 
                 printf( "writing .ZIP ..." );
 
@@ -611,6 +622,8 @@ int main( int argc, const char *argv[] )
             {
                 FileSystem::fileTrans embedRoot = open_root_dir( fileRoot, pathToEmbedFolder, -6, "embed root" );
 
+                size_t embedCount = 0;
+
                 embedRoot->ScanDirectory( "/", "*", true, nullptr,
                     [&]( const filePath& absFilePath )
                 {
@@ -686,6 +699,9 @@ int main( int argc, const char *argv[] )
                     if ( dataNode )
                     {
                         printf( "ok.\n" );
+
+                        // Statistics.
+                        embedCount++;
                     }
                     else
                     {
@@ -693,6 +709,8 @@ int main( int argc, const char *argv[] )
                     }
 
                 }, nullptr );
+
+                printf( "total embed count: %zu\n", embedCount );
             }
 
             // Then we finalize + insert our embedding section.
@@ -731,6 +749,8 @@ int main( int argc, const char *argv[] )
         }
         else
         {
+            printf( "mode not implemented.\n" );
+
             return -2;
         }
     }
