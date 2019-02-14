@@ -93,6 +93,75 @@ static FileSystem::fileTrans open_root_dir( CFileTranslator *base, const filePat
     throw basic_runtime_exception( fail_ret_code, std::move( err_msg ) );
 }
 
+static inline PEFile::PESection* embed_file_as_section( PEFile& inputImage, CFile *tempFile )
+{
+    // We can only write as much as a section allows.
+    std::int32_t realWriteSize = (std::int32_t)tempFile->GetSizeNative();
+
+    // For writing we seek our archive file back to start.
+    tempFile->SeekNative( 0, SEEK_SET );
+
+    // For that we create a new section.
+    PEFile::PESection embedSect;
+    embedSect.shortName = ".embed";
+    embedSect.chars.sect_containsCode = false;
+    embedSect.chars.sect_containsInitData = false;
+    embedSect.chars.sect_containsUninitData = false;
+    embedSect.chars.sect_mem_farData = false;
+    embedSect.chars.sect_mem_purgeable = true;
+    embedSect.chars.sect_mem_locked = false;
+    embedSect.chars.sect_mem_preload = true;
+    embedSect.chars.sect_mem_discardable = true;
+    embedSect.chars.sect_mem_not_cached = true;
+    embedSect.chars.sect_mem_not_paged = false;
+    embedSect.chars.sect_mem_shared = false;
+    embedSect.chars.sect_mem_execute = false;
+    embedSect.chars.sect_mem_read = true;
+    embedSect.chars.sect_mem_write = false;
+    embedSect.stream.Truncate( realWriteSize );
+    {
+        void *dstDataPtr = embedSect.stream.Data();
+        tempFile->Read( dstDataPtr, 1, (size_t)realWriteSize );
+    }
+    embedSect.Finalize();
+
+    return inputImage.AddSection( std::move( embedSect ) );
+}
+
+static inline void write_section_reference( PEFile& inputImage, PEFile::PESectionDataReference& refToWriteAt, PEFile::PESection *sectionToLink )
+{
+    // Write a negotiated structure at the export location.
+    // 1) void *dataloc
+    // 2) size_t dataSize
+    // Members must be in the input image platform format (32bit or 64bit, ie).
+    // We must write base relocation information if required.
+    // Members have to be initialized to 0 statically, can be placed in const memory.
+    PEFile::PESection *expSect = refToWriteAt.GetSection();
+    std::uint32_t expSectOff = refToWriteAt.GetSectionOffset();
+
+    expSect->stream.Seek( (int32_t)expSectOff );
+
+    if ( inputImage.isExtendedFormat )
+    {
+        std::uint64_t vaCompressedData = ( inputImage.GetImageBase() + sectionToLink->ResolveRVA( 0 ) );
+
+        // DATALOC.
+        expSect->stream.WriteUInt64( vaCompressedData );
+        // DATASIZE.
+        expSect->stream.WriteUInt64( (std::uint64_t)sectionToLink->stream.Size() );
+    }
+    else
+    {
+        std::uint32_t vaCompressedData = ( (std::uint32_t)inputImage.GetImageBase() + sectionToLink->ResolveRVA( 0 ) );
+
+        // DATALOC.
+        expSect->stream.WriteUInt32( vaCompressedData );
+        // DATASIZE.
+        expSect->stream.WriteUInt32( (std::uint32_t)sectionToLink->stream.Size() );
+    }
+    inputImage.OnWriteAbsoluteVA( expSect, expSectOff, inputImage.isExtendedFormat );
+}
+
 int main( int argc, const char *argv[] )
 {
     if ( argc < 1 )
@@ -270,37 +339,7 @@ int main( int argc, const char *argv[] )
 
             printf( "embedding archive into image\n" );
 
-            // We can only write as much as a section allows.
-            std::int32_t realWriteSize = (std::int32_t)tempFile->GetSizeNative();
-
-            // For writing we seek our archive file back to start.
-            tempFile->SeekNative( 0, SEEK_SET );
-
-            // For that we create a new section.
-            PEFile::PESection embedSect;
-            embedSect.shortName = ".embed";
-            embedSect.chars.sect_containsCode = false;
-            embedSect.chars.sect_containsInitData = false;
-            embedSect.chars.sect_containsUninitData = false;
-            embedSect.chars.sect_mem_farData = false;
-            embedSect.chars.sect_mem_purgeable = true;
-            embedSect.chars.sect_mem_locked = false;
-            embedSect.chars.sect_mem_preload = true;
-            embedSect.chars.sect_mem_discardable = true;
-            embedSect.chars.sect_mem_not_cached = true;
-            embedSect.chars.sect_mem_not_paged = false;
-            embedSect.chars.sect_mem_shared = false;
-            embedSect.chars.sect_mem_execute = false;
-            embedSect.chars.sect_mem_read = true;
-            embedSect.chars.sect_mem_write = false;
-            embedSect.stream.Truncate( realWriteSize );
-            {
-                void *dstDataPtr = embedSect.stream.Data();
-                tempFile->Read( dstDataPtr, 1, (size_t)realWriteSize );
-            }
-            embedSect.Finalize();
-
-            PEFile::PESection *newSect = inputImage.AddSection( std::move( embedSect ) );
+            PEFile::PESection *newSect = embed_file_as_section( inputImage, tempFile );
 
             if ( newSect == nullptr )
             {
@@ -331,36 +370,7 @@ int main( int argc, const char *argv[] )
 
             printf( "patching executable memory with the export data reference\n" );
 
-            // Write a negotiated structure at the export location.
-            // 1) void *dataloc
-            // 2) size_t dataSize
-            // Members must be in the input image platform format (32bit or 64bit, ie).
-            // We must write base relocation information if required.
-            // Members have to be initialized to 0 statically, can be placed in const memory.
-            PEFile::PESection *expSect = requestedExport.expRef.GetSection();
-            std::uint32_t expSectOff = requestedExport.expRef.GetSectionOffset();
-
-            expSect->stream.Seek( (int32_t)expSectOff );
-
-            if ( inputImage.isExtendedFormat )
-            {
-                std::uint64_t vaCompressedData = ( inputImage.GetImageBase() + newSect->ResolveRVA( 0 ) );
-
-                // DATALOC.
-                expSect->stream.WriteUInt64( vaCompressedData );
-                // DATASIZE.
-                expSect->stream.WriteUInt64( (std::uint64_t)realWriteSize );
-            }
-            else
-            {
-                std::uint32_t vaCompressedData = ( (std::uint32_t)inputImage.GetImageBase() + newSect->ResolveRVA( 0 ) );
-
-                // DATALOC.
-                expSect->stream.WriteUInt32( vaCompressedData );
-                // DATASIZE.
-                expSect->stream.WriteUInt32( (std::uint32_t)realWriteSize );
-            }
-            inputImage.OnWriteAbsoluteVA( expSect, expSectOff, inputImage.isExtendedFormat );
+            write_section_reference( inputImage, requestedExport.expRef, newSect );
 
             if ( keepExport == false )
             {
@@ -402,7 +412,152 @@ int main( int argc, const char *argv[] )
         {
             printf( "embedding simple file\n" );
 
+            if ( args_remaining < 1 )
+            {
+                printf( "missing path to file to embed\n" );
+                return -3;
+            }
 
+            filePath pathFileToEmbed = argv[ argToStartFrom + 0 ];
+
+            if ( args_remaining < 2 )
+            {
+                printf( "missing export name for resolution\n" );
+                return -3;
+            }
+
+            peString <char> exportName = argv[ argToStartFrom + 1 ];
+
+            if ( args_remaining < 3 )
+            {
+                printf( "missing path to input executable\n" );
+                return -3;
+            }
+
+            filePath pathToInputExec = argv[ argToStartFrom + 2 ];
+
+            if ( args_remaining < 4 )
+            {
+                printf( "missing path for output executable writing\n" );
+                return -3;
+            }
+
+            filePath pathToOutputExec = argv[ argToStartFrom + 3 ];
+
+            printf( "loading input image\n" );
+
+            // First we load the input image.
+            PEFile inputImage;
+            {
+                FileSystem::fileTrans inputImageRoot = open_root_dir( fileRoot, pathToInputExec, -4, "input image root" );
+
+                FileSystem::filePtr inputImageStream = inputImageRoot->Open( pathToInputExec, "rb" );
+
+                PEStreamFS stream( inputImageStream );
+
+                try
+                {
+                    inputImage.LoadFromDisk( &stream );
+                }
+                catch( peframework_exception& )
+                {
+                    printf( "failed to load input PE image\n" );
+                    return -5;
+                }
+            }
+
+            printf( "resolving requested export '%s'\n", exportName.GetConstString() );
+
+            // Then we resolve the export.
+            auto *findExportNode = inputImage.exportDir.funcNameMap.Find( exportName );
+
+            if ( findExportNode == nullptr )
+            {
+                printf( "failed to resolve export in input image\n" );
+                return -6;
+            }
+
+            size_t exportIndex = findExportNode->GetValue();
+
+            PEFile::PEExportDir::func& exportEntry = inputImage.exportDir.functions[ exportIndex ];
+
+            if ( exportEntry.isForwarder )
+            {
+                printf( "error: requested export is a forwarder\n" );
+                return -7;
+            }
+
+            printf( "embedding file into input image\n" );
+
+            PEFile::PESection *newSect;
+            {
+                // Open the file that we want to embed.
+                FileSystem::fileTrans fileToEmbedRoot = open_root_dir( fileRoot, pathFileToEmbed, -8, "embed file root" );
+
+                FileSystem::filePtr fileToEmbedStream = fileToEmbedRoot->Open( pathFileToEmbed, "rb" );
+
+                if ( !fileToEmbedStream.is_good() )
+                {
+                    printf( "failed to open the given file for embedding\n" );
+                    return -9;
+                }
+
+                // Thus we write the file into a section.
+                newSect = embed_file_as_section( inputImage, fileToEmbedStream );
+            }
+
+            if ( newSect == nullptr )
+            {
+                printf( "failed to embed given file for embedding as PE section\n" );
+                return -10;
+            }
+
+            if ( keepExport == false )
+            {
+                printf( "removing export by ordinal and name\n" );
+
+                // Remove the named export.
+                inputImage.exportDir.funcNameMap.RemoveNode( findExportNode );
+                inputImage.exportDir.functions.RemoveByIndex( exportIndex );
+
+                // Rewrite the information.
+                inputImage.exportDir.funcNamesAllocEntry = PEFile::PESectionAllocation();
+                inputImage.exportDir.funcAddressAllocEntry = PEFile::PESectionAllocation();
+            }
+
+            printf( "patching executable memory with the export data reference\n" );
+
+            // Write the reference to the section into the image export.
+            write_section_reference( inputImage, exportEntry.expRef, newSect );
+
+            printf( "writing output image...\n" );
+
+            // Finish by writing image back to disk.
+            {
+                FileSystem::fileTrans outputFileRoot = open_root_dir( fileRoot, pathToOutputExec, -11, "output exec root" );
+
+                FileSystem::filePtr outputFileStream = outputFileRoot->Open( pathToOutputExec, "wb" );
+
+                if ( !outputFileStream.is_good() )
+                {
+                    printf( "failed to open output exec path for writing\n" );
+                    return -12;
+                }
+
+                PEStreamFS stream( outputFileStream );
+
+                try
+                {
+                    inputImage.WriteToStream( &stream );
+                }
+                catch( peframework_exception& )
+                {
+                    printf( "failed to write output PE image\n" );
+                    return -13;
+                }
+            }
+
+            printf( "done.\n" );
         }
         else if ( mode == eProcessingMode::RESOURCE_EMBED )
         {
