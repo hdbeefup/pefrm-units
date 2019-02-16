@@ -385,15 +385,16 @@ int main( int argc, const char *argv[] )
 
             if ( keepExport == false )
             {
-                printf( "removing export by ordinal and name\n" );
+                printf( "removing export by name\n" );
+
+                // TODO: also remove the export by ordinal but then adjust all export ordinals
+                // to point to their correct/decremented entries.
 
                 // Remove the named export.
                 inputImage.exportDir.funcNameMap.RemoveNode( findExportNode );
-                inputImage.exportDir.functions.RemoveByIndex( requestedExportIndex );
 
                 // Rewrite the information.
                 inputImage.exportDir.funcNamesAllocEntry = PEFile::PESectionAllocation();
-                inputImage.exportDir.funcAddressAllocEntry = PEFile::PESectionAllocation();
             }
 
             // Write the PE image back to disk.
@@ -513,15 +514,16 @@ int main( int argc, const char *argv[] )
 
             if ( keepExport == false )
             {
-                printf( "removing export by ordinal and name\n" );
+                printf( "removing export by name\n" );
+
+                // TODO: also remove the export by ordinal but then adjust all export ordinals
+                // to point to their correct/decremented entries.
 
                 // Remove the named export.
                 inputImage.exportDir.funcNameMap.RemoveNode( findExportNode );
-                inputImage.exportDir.functions.RemoveByIndex( exportIndex );
 
                 // Rewrite the information.
                 inputImage.exportDir.funcNamesAllocEntry = PEFile::PESectionAllocation();
-                inputImage.exportDir.funcAddressAllocEntry = PEFile::PESectionAllocation();
             }
 
             printf( "patching executable memory with the export data reference\n" );
