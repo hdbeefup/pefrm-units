@@ -165,7 +165,7 @@ void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const fi
     }
     
     // Establish a file location.
-    std::wstring widePDBFileLocation = ( outPathWithoutExt.convert_unicode() + L".pdb" );
+    auto widePDBFileLocation = ( outPathWithoutExt.convert_unicode <FileSysCommonAllocator> () + L".pdb" );
 
     printf( "generating PDB file\n" );
 
@@ -176,7 +176,7 @@ void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const fi
 
     BOOL openSuccess =
         PDB::Open2W(
-            widePDBFileLocation.c_str(), "wb", &error_code_out, errorBuf, _countof(errorBuf),
+            widePDBFileLocation.GetConstString(), "wb", &error_code_out, errorBuf, _countof(errorBuf),
             &pdbHandle
         );
 
@@ -311,11 +311,12 @@ void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const fi
             dbgSectHeader->Clear();
 
             // Write new things.
-            peFile.ForAllSections(
-                [&]( PEFile::PESection *sect )
+            for ( auto iter = peFile.GetSectionIterator(); !iter.IsEnd(); iter.Increment() )
             {
+                PEFile::PESection *sect = iter.Resolve();
+
                 IMAGE_SECTION_HEADER header;
-                strncpy( (char*)header.Name, sect->shortName.c_str(), _countof(header.Name) );
+                strncpy( (char*)header.Name, sect->shortName.GetConstString(), _countof(header.Name) );
                 header.Misc.VirtualSize = sect->GetVirtualSize();
                 header.VirtualAddress = sect->GetVirtualAddress();
                 header.SizeOfRawData = (DWORD)sect->stream.Size();
@@ -327,7 +328,7 @@ void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const fi
                 header.Characteristics = sect->GetPENativeFlags();
 
                 dbgSectHeader->Append( 1, &header );
-            });
+            }
 
             dbgSectHeader->Close();
         }
@@ -360,17 +361,13 @@ void tryGenerateSamplePDB( PEFile& peFile, CFileTranslator *outputRoot, const fi
         stream.Write( &pdbDebugEntry, sizeof(pdbDebugEntry) );
 
         // Inside of the EXE file we must use backslashes.
-        std::replace( widePDBFileLocation.begin(), widePDBFileLocation.end(), L'/', L'\\' );
+        std::replace( (wchar_t*)widePDBFileLocation.GetConstString(), (wchar_t*)widePDBFileLocation.GetConstString() + widePDBFileLocation.GetLength(), L'/', L'\\' );
 
         // Create a UTF-8 version of the wide PDB location string.
-        std::string utf8_pdbLoc;
-        {
-            std::wstring_convert <std::codecvt_utf8 <wchar_t>> utf8_conv;
-            utf8_pdbLoc = utf8_conv.to_bytes( widePDBFileLocation );
-        }
+        auto utf8_pdbLoc = CharacterUtil::ConvertStrings <wchar_t, char8_t> ( widePDBFileLocation );
 
         // Then write the zero-terminated PDB file location, UTF-8.
-        stream.Write( utf8_pdbLoc.c_str(), utf8_pdbLoc.size() + 1 );
+        stream.Write( utf8_pdbLoc.GetConstString(), utf8_pdbLoc.GetLength() + 1 );
 
         // Done!
     }

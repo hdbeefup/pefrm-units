@@ -162,7 +162,7 @@ int main( int _, char *__[] )
                         outputRoot->GetFullPathFromRoot( "@", false, outFileName );
 
                         // First get the same target directory as the input file.
-                        filePath nameItem = FileSystem::GetFileNameItem( cfgExecutablePath.c_str(), false, NULL, NULL );
+                        filePath nameItem = FileSystem::GetFileNameItem <FileSysCommonAllocator> ( cfgExecutablePath.c_str(), false, nullptr, nullptr );
 
                         assert( nameItem.empty() == false );
 
