@@ -13,12 +13,12 @@ struct PEStreamFS final : public PEStream
 
     size_t Read( void *buf, size_t readCount ) override
     {
-        return useFile->Read( buf, 1, readCount );
+        return useFile->Read( buf, readCount );
     }
 
     bool Write( const void *buf, size_t writeCount ) override
     {
-        return ( useFile->Write( buf, 1, writeCount ) == writeCount );
+        return ( useFile->Write( buf, writeCount ) == writeCount );
     }
 
     bool Seek( pe_file_ptr_t seek ) override

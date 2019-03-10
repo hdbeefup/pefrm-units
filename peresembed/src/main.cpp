@@ -121,7 +121,7 @@ static inline PEFile::PESection* embed_file_as_section( PEFile& inputImage, CFil
     embedSect.stream.Truncate( realWriteSize );
     {
         void *dstDataPtr = embedSect.stream.Data();
-        tempFile->Read( dstDataPtr, 1, (size_t)realWriteSize );
+        tempFile->Read( dstDataPtr, (size_t)realWriteSize );
     }
     embedSect.Finalize();
 
@@ -312,7 +312,7 @@ int main( int argc, const char *argv[] )
 
                     // Output a nice message.
                     {
-                        auto ansiFilePath = absFilePath.convert_ansi();
+                        auto ansiFilePath = absFilePath.convert_ansi <FileSysCommonAllocator> ();
 
                         printf( "* %s\n", ansiFilePath.GetConstString() );
                     }
@@ -631,7 +631,7 @@ int main( int argc, const char *argv[] )
                 {
                     // Print a nice message.
                     {
-                        auto ansiAbsPath = absFilePath.convert_ansi();
+                        auto ansiAbsPath = absFilePath.convert_ansi <FileSysCommonAllocator> ();
 
                         printf( "* %s ...", ansiAbsPath.GetConstString() );
                     }
@@ -640,7 +640,7 @@ int main( int argc, const char *argv[] )
                     bool isFile;
                     dirNames relFileNodePath;
 
-                    embedRoot->GetRelativePathTreeFromRoot( absFilePath, relFileNodePath, isFile );
+                    embedRoot->GetRelativePathNodesFromRoot( absFilePath, relFileNodePath, isFile );
 
                     assert( isFile == true );
 
@@ -664,7 +664,7 @@ int main( int argc, const char *argv[] )
                     embedSect.stream.Truncate( target_seek );
                     {
                         void *dstDataPtr = (char*)embedSect.stream.Data() + file_off;
-                        stream->Read( dstDataPtr, 1, (size_t)real_file_size );
+                        stream->Read( dstDataPtr, (size_t)real_file_size );
                     }
                     embedSect.stream.Seek( target_seek );
 
