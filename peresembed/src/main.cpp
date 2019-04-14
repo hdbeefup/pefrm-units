@@ -637,12 +637,12 @@ int main( int argc, const char *argv[] )
                     }
 
                     // Turn it into a relative node path from the embed root.
-                    bool isFile;
-                    dirNames relFileNodePath;
+                    normalNodePath relNodePath;
 
-                    embedRoot->GetRelativePathNodesFromRoot( absFilePath, relFileNodePath, isFile );
+                    embedRoot->GetRelativePathNodesFromRoot( absFilePath, relNodePath );
 
-                    assert( isFile == true );
+                    assert( relNodePath.isFilePath == true );
+					assert( relNodePath.backCount == 0 );
 
                     FileSystem::filePtr stream = embedRoot->Open( absFilePath, "rb" );
 
@@ -674,11 +674,11 @@ int main( int argc, const char *argv[] )
                     // Get to the resource directory.
                     PEFile::PEResourceDir *putDir = &inputImage.resourceRoot;
 
-                    size_t numDirItems = ( relFileNodePath.GetCount() - 1 );
+                    size_t numDirItems = ( relNodePath.travelNodes.GetCount() - 1 );
 
                     for ( size_t n = 0; n < numDirItems; n++ )
                     {
-                        filePath nodeName = relFileNodePath[ n ];
+                        filePath nodeName = relNodePath.travelNodes[ n ];
 
                         nodeName.transform_to <char16_t> ();
 
@@ -690,7 +690,7 @@ int main( int argc, const char *argv[] )
                     }
 
                     // Then create our data node.
-                    filePath dataNodeName = std::move( relFileNodePath[ numDirItems ] );
+                    filePath dataNodeName = std::move( relNodePath.travelNodes[ numDirItems ] );
 
                     dataNodeName.transform_to <char16_t> ();
 

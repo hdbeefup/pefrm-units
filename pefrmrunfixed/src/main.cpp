@@ -138,9 +138,10 @@ int main( int argc, char *argv[] )
     // Map the binary into address space.
     // This is done in a very basic way and it is left up to the reader to improve it.
     {
-        fixedExec.ForAllSections(
-            [&]( PEFile::PESection *theSect )
+        for ( auto iter = fixedExec.GetSectionIterator(); !iter.IsEnd(); iter.Increment() )
         {
+			PEFile::PESection *theSect = iter.Resolve();
+
             std::uint32_t virtualAddr = theSect->GetVirtualAddress();
 
             std::uint32_t dataSize = (std::uint32_t)theSect->stream.Size();
@@ -149,7 +150,7 @@ int main( int argc, char *argv[] )
 
             theSect->stream.Seek( 0 );
             theSect->stream.Read( sectMem, dataSize );
-        });
+        }
     }
 
     // We do not have to relocate.
@@ -191,7 +192,7 @@ int main( int argc, char *argv[] )
                 }
                 else
                 {
-                    funcAddr = GetProcAddress( memoryModule, funcInfo.name.c_str() );
+                    funcAddr = GetProcAddress( memoryModule, funcInfo.name.GetConstString() );
                 }
 
                 if ( funcAddr == nullptr )
@@ -216,7 +217,7 @@ int main( int argc, char *argv[] )
         for ( const PEFile::PEImportDesc& importEntry : fixedExec.imports )
         {
             // Load the actual module.
-            HMODULE memoryModule = LoadLibraryA( importEntry.DLLName.c_str() );
+            HMODULE memoryModule = LoadLibraryA( importEntry.DLLName.GetConstString() );
 
             assert( memoryModule != nullptr );
 
@@ -231,7 +232,7 @@ int main( int argc, char *argv[] )
     {
         for ( const PEFile::PEDelayLoadDesc& delayLoad : fixedExec.delayLoads )
         {
-            HMODULE modHandle = LoadLibraryA( delayLoad.DLLName.c_str() );
+            HMODULE modHandle = LoadLibraryA( delayLoad.DLLName.GetConstString() );
 
             assert( modHandle != nullptr );
 
