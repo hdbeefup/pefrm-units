@@ -73,18 +73,19 @@ int main( int argc, char *argv[] )
     std::uint32_t imageSize = calcExec.peOptHeader.sizeOfImage;
 
     // We first have to allocate our executable into a special position.
-    void *imageMemory = VirtualAlloc( NULL, imageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE );  // TODO: set proper access rights.
+    void *imageMemory = VirtualAlloc( nullptr, imageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE );  // TODO: set proper access rights.
 
-    assert( imageMemory != NULL );
+    assert( imageMemory != nullptr );
 
     size_t newImageBase = (size_t)imageMemory;
 
     // Map the binary into address space.
     // This is done in a very basic way and it is left up to the reader to improve it.
     {
-        calcExec.ForAllSections(
-            [&]( PEFile::PESection *theSect )
+        for ( auto iter = calcExec.GetSectionIterator(); !iter.IsEnd(); iter.Increment() )
         {
+			PEFile::PESection *theSect = iter.Resolve();
+
             std::uint32_t virtualAddr = theSect->GetVirtualAddress();
 
             std::uint32_t dataSize = (std::uint32_t)theSect->stream.Size();
@@ -93,16 +94,16 @@ int main( int argc, char *argv[] )
 
             theSect->stream.Seek( 0 );
             theSect->stream.Read( sectMem, dataSize );
-        });
+        }
     }
 
     // Relocate the binary into its space.
     {
-        for ( const std::pair <const std::uint32_t, PEFile::PEBaseReloc>& relocPair : calcExec.baseRelocs )
+        for ( auto *relocNode : calcExec.baseRelocs )
         {
-            const std::uint32_t rvaOfBlock = relocPair.first;
+            const std::uint32_t rvaOfBlock = relocNode->GetKey();
             
-            for ( const PEFile::PEBaseReloc::item& relocItem : relocPair.second.items )
+            for ( const PEFile::PEBaseReloc::item& relocItem : relocNode->GetValue().items )
             {
                 void *relocMem = ( (char*)imageMemory + rvaOfBlock * PEFile::baserelocChunkSize + relocItem.offset );
 
@@ -164,7 +165,7 @@ int main( int argc, char *argv[] )
                 const PEFile::PEImportDesc::importFunc& funcInfo = *thunkInfoIter;
 
                 // Patch the function ptr.
-                void *funcAddr = NULL;
+                void *funcAddr = nullptr;
 
                 if ( funcInfo.isOrdinalImport )
                 {
@@ -172,10 +173,10 @@ int main( int argc, char *argv[] )
                 }
                 else
                 {
-                    funcAddr = GetProcAddress( memoryModule, funcInfo.name.c_str() );
+                    funcAddr = GetProcAddress( memoryModule, funcInfo.name.GetConstString() );
                 }
 
-                if ( funcAddr == NULL )
+                if ( funcAddr == nullptr )
                 {
                     std::cout << "failed to resolve module import\n";
 
@@ -197,9 +198,9 @@ int main( int argc, char *argv[] )
         for ( const PEFile::PEImportDesc& importEntry : calcExec.imports )
         {
             // Load the actual module.
-            HMODULE memoryModule = LoadLibraryA( importEntry.DLLName.c_str() );
+            HMODULE memoryModule = LoadLibraryA( importEntry.DLLName.GetConstString() );
 
-            assert( memoryModule != NULL );
+            assert( memoryModule != nullptr );
 
             // Need to write into the thunk.
             IMAGE_THUNK_DATA *modThunkIter = (IMAGE_THUNK_DATA*)( (char*)imageMemory + importEntry.firstThunkRef.GetRVA() );
@@ -212,9 +213,9 @@ int main( int argc, char *argv[] )
     {
         for ( const PEFile::PEDelayLoadDesc& delayLoad : calcExec.delayLoads )
         {
-            HMODULE modHandle = LoadLibraryA( delayLoad.DLLName.c_str() );
+            HMODULE modHandle = LoadLibraryA( delayLoad.DLLName.GetConstString() );
 
-            assert( modHandle != NULL );
+            assert( modHandle != nullptr );
 
             // Write it into memory.
             {
