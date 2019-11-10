@@ -7,6 +7,14 @@
 
 #include <winternl.h>
 
+#ifdef _M_AMD64
+#include <peloader.freg.x64.h>
+#elif defined(_M_ARM64)
+#include <peloader.freg.arm64.h>
+#elif defined(_M_ARM)
+#include <peloader.freg.arm32.h>
+#endif //PLATFORM INCLUDES.
+
 int main( int argc, char *argv[] )
 {
     // Load calc.exe and run it.
@@ -139,19 +147,60 @@ int main( int argc, char *argv[] )
     // Register all exception handlers.
 #ifdef _M_AMD64
     {
-        for ( const PEFile::PERuntimeFunction& rtFunc : calcExec.exceptRFs )
-        {
-            RUNTIME_FUNCTION nativeRTFunc;
-            nativeRTFunc.BeginAddress = rtFunc.beginAddrRef.GetRVA();
-            nativeRTFunc.EndAddress = rtFunc.endAddrRef.GetRVA();
-            nativeRTFunc.UnwindInfoAddress = rtFunc.unwindInfoRef.GetRVA();
-            
-            BOOLEAN success = RtlAddFunctionTable( &nativeRTFunc, 1, newImageBase );
+        PEFileDetails::PEFunctionRegistryX64 *rtFuncs = dynamic_cast <PEFileDetails::PEFunctionRegistryX64*> ( calcExec.genDataDirs.entries.FindOrDefault( IMAGE_DIRECTORY_ENTRY_EXCEPTION ) );
 
-            assert( success == 1 );
+        if ( rtFuncs != nullptr )
+        {
+            for ( const PEFileDetails::PERuntimeFunctionX64& rtFunc : rtFuncs->entries )
+            {
+                RUNTIME_FUNCTION nativeRTFunc;
+                nativeRTFunc.BeginAddress = rtFunc.beginAddrRef.GetRVA();
+                nativeRTFunc.EndAddress = rtFunc.endAddrRef.GetRVA();
+                nativeRTFunc.UnwindInfoAddress = rtFunc.unwindInfoRef.GetRVA();
+            
+                BOOLEAN success = RtlAddFunctionTable( &nativeRTFunc, 1, newImageBase );
+
+                assert( success == 1 );
+            }
         }
     }
-#endif
+#elif defined(_M_ARM64)
+    {
+        PEFileDetails::PEFunctionRegistryARM64 *rtFuncs = dynamic_cast <PEFileDetails::PEFunctionRegistryARM64*> ( calcExec.genDataDirs.entries.FindOrDefault( IMAGE_DIRECTORY_ENTRY_EXCEPTION ) );
+
+        if ( rtFuncs != nullptr )
+        {
+            for ( const PEFileDetails::PERuntimeFunctionARM64& rtFunc : rtFuncs->entries )
+            {
+                RUNTIME_FUNCTION nativeRTFunc;
+                nativeRTFunc.BeginAddress = rtFunc.BeginAddress.GetRVA();
+                nativeRTFunc.UnwindData = rtFunc.UnwindData;
+
+                BOOLEAN success = RtlAddFunctionTable( &nativeRTFunc, 1, newImageBase );
+
+                assert( success == 1 );
+            }
+        }
+    }
+#elif defined(_M_ARM)
+    {
+        PEFileDetails::PEFunctionRegistryARM32 *rtFuncs = dynamic_cast <PEFileDetails::PEFunctionRegistryARM32*> ( calcExec.genDataDirs.entries.FindOrDefault( IMAGE_DIRECTORY_ENTRY_EXCEPTION ) );
+
+        if ( rtFuncs != nullptr )
+        {
+            for ( const PEFileDetails::PERuntimeFunctionARM32& rtFunc : rtFuncs->entries )
+            {
+                RUNTIME_FUNCTION nativeRTFunc;
+                nativeRTFunc.BeginAddress = rtFunc.BeginAddress.GetRVA();
+                nativeRTFunc.UnwindData = rtFunc.UnwindData;
+
+                BOOLEAN success = RtlAddFunctionTable( &nativeRTFunc, 1, newImageBase );
+
+                assert( success == 1 );
+            }
+        }
+    }
+#endif //PLATFORM DEPENDANT CODE.
 
     // Helpers for thunking.
     struct Helpers
